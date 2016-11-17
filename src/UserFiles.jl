@@ -73,7 +73,7 @@ export create
         If strict=false return nothing.
 """
 function getready{T<:UserFile}(userfile::T; strict=true)::T 
- fileready(userfile) && return userfile
+ goodsize(userfile) && return userfile
       if strict
         create( userfile) || error("Can't create $userfile")
       else
@@ -83,7 +83,7 @@ function getready{T<:UserFile}(userfile::T; strict=true)::T
             return nothing 
         end
       end
- fileready( userfile)? userfile: error("File $userfile not ready after create()")
+ goodsize( userfile)? userfile: error("File $userfile not ready after create()")
 end
 export getready
 
@@ -109,8 +109,8 @@ export parts
 """
 function routes( files_for_include::Array, destination::Array)::Void
  for f in files_for_include
-  t::UserFile = include(f) # f должен возвращать последним выражением тип <:UserFile
-  push!(destination, Dict( :type=>t, :re=>re(t), :fs=>fs(t), :fields=>fields(t), :fielddict=>fielddict(t) ))
+  t::Type = include(f) # f должен возвращать последним выражением тип <:UserFile
+  push!(destination, t)
  end
  nothing 
 end

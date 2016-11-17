@@ -24,7 +24,7 @@ export UserFile, RowFile, GzipRows, PlainRows
 """Returns field separator.
     Must be redefined on concrete user file type.
 """
-fs{T<:UserFile}(::Type{T}) = error("Not implemented yet for $T") 
+fs{T<:UserFile}(::Type{T}) = error("fs() not implemented yet for $T") 
 fs(f::UserFile) = fs(typeof(f)) 
 export fs
 
@@ -33,7 +33,7 @@ export fs
 """Returns field list as symbols tuple.
     Must be redefined on concrete user file type.
 """
-fields{T<:UserFile}(::Type{T}) = error("Not implemented yet for $T")
+fields{T<:UserFile}(::Type{T}) = error("fields() not implemented yet for $T")
 fields(f::UserFile)::Tuple{Vararg{Symbol}} = fields(typeof(f))::Tuple{Vararg{Symbol}}
 export fields
 
@@ -49,7 +49,7 @@ export goodsize
 """Returns Dict( groupname =>[ fileslist]) describing files needed as sources for create this file.
     Must be redefined on concrete user file type
 """
-needfiles(userfile::UserFile)::Dict = error("Not implemented yet for $userfile")
+needfiles(userfile::UserFile)::Dict = error("needfiles() not implemented yet for $userfile")
 export needfiles
 
 
@@ -58,7 +58,7 @@ export needfiles
     Must be redefined for concrete user file type.
     Takes concrete filename as parameter.
 """
-create(userfile::UserFile)::Bool = error("Not implemented yet for $userfile")
+create(userfile::UserFile)::Bool = error("create() not implemented yet for $userfile")
 export create
 
 
@@ -92,7 +92,7 @@ export getready
 """Returns regexp for concrete user file type instance or file type.
     Must be redefined on concrete user file type.
 """
-re{U<:UserFile}(T::Type{U}) = error("Not implemented for type $T")
+re{U<:UserFile}(T::Type{U}) = error("re() not implemented for type $T")
 re(file::UserFile) = re(typeof(file))
 export re
 

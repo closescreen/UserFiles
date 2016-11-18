@@ -19,30 +19,24 @@ abstract PlainRows<:RF
 
 export UserFile, RowFile, GzipRows, PlainRows
 
+"Return explained string for error if function on type not implemented"
+function _help_redefine_on_type( funcname::AbstractString, T::Type, funcdesc::AbstractString)::AbstractString
+    """Function $funcname(T::Type{$T}) not implemented by you. Define it as sample below:
+    \"$funcdesc\"
+    $funcname(T::Type{$T}) = ...
+    or
+    function $funcname(T::Type{$T}) 
+        #...    
+    end    
+    """
+end
 
-
-"""Returns field separator.
+"""Returns regexp for concrete user file type instance or file type.
     Must be redefined on concrete user file type.
 """
-fs{T<:UserFile}(::Type{T}) = error("fs() not implemented yet for $T") 
-fs(f::UserFile) = fs(typeof(f)) 
-export fs
-
-
-
-"""Returns field list as symbols tuple.
-    Must be redefined on concrete user file type.
-"""
-fields{T<:UserFile}(::Type{T}) = error("fields() not implemented yet for $T")
-fields(f::UserFile)::Tuple{Vararg{Symbol}} = fields(typeof(f))::Tuple{Vararg{Symbol}}
-export fields
-
-
-
-"Primitive size-based file-ready-test."
-goodsize(f::GzipRows)::Bool = filesize(f.name)>20
-goodsize(f::PlainRows)::Bool = filesize(f.name)>0
-export goodsize
+re{U<:UserFile}(T::Type{U}) = _help_redefine_on_type( "re", T, "returns Regex for any matched filenames")|>error
+re(file::UserFile) = re(typeof(file))
+export re
 
 
 
@@ -60,6 +54,24 @@ export needfiles
 """
 create(userfile::UserFile)::Bool = error("create() not implemented yet for $userfile")
 export create
+
+
+
+"""Returns field separator.
+    Must be redefined on concrete user file type.
+"""
+fs{T<:UserFile}(::Type{T}) = error("fs() not implemented yet for $T") 
+fs(f::UserFile) = fs(typeof(f)) 
+export fs
+
+
+
+"""Returns field list as symbols tuple.
+    Must be redefined on concrete user file type.
+"""
+fields{T<:UserFile}(::Type{T}) = error("fields() not implemented yet for $T")
+fields(f::UserFile)::Tuple{Vararg{Symbol}} = fields(typeof(f))::Tuple{Vararg{Symbol}}
+export fields
 
 
 
@@ -89,12 +101,10 @@ export getready
 
 
 
-"""Returns regexp for concrete user file type instance or file type.
-    Must be redefined on concrete user file type.
-"""
-re{U<:UserFile}(T::Type{U}) = error("re() not implemented for type $T")
-re(file::UserFile) = re(typeof(file))
-export re
+"Primitive size-based file-ready-test."
+goodsize(f::GzipRows)::Bool = filesize(f.name)>20
+goodsize(f::PlainRows)::Bool = filesize(f.name)>0
+export goodsize
 
 
 
@@ -124,7 +134,7 @@ export routes
 
 
 include("add_functions.jl")
-
+include("templates.jl")
 end # module
 
 

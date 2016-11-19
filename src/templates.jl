@@ -26,12 +26,12 @@ needstr = Dict( Symbol(k)=>v for (k,v) in need )
 
 rv = """
 type $newtype <: $T
-    name::AbstractString
+    match::RegexMatch
 end
 
 typealias F $newtype
 
-re(f::F) = r\"$file\" # <-- fix me
+re(T::Type{F}) = r\"$file\" # <-- fix me
 
 function needfiles(f::F) # <-- check me 
  $needstr
@@ -50,8 +50,13 @@ fields(T::Type{F}) = [:a, :b] # <--- redefine me!
 
 
 
-wr ? open(_->print(_,rv), file, "a") : rv
-    
+if wr 
+    f = ismatch(r"\.jl$", file) ? file : newtype*".jl"
+    open(_->print(_,"# Added $(now())\n", rv), f, "a")
+    info("Definitions for $newtype was added to file $f")
+else
+    rv
+end
 
 end # function
 export skelet

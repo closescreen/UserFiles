@@ -4,6 +4,9 @@ module UserFiles
 abstract UserFile
 typealias UF UserFile
 
+"Returns file name"
+name{U<:UserFile}(file::U) = file.match.match.string
+export name
 
 "Abstract for row-based (line-by-line) readable files"
 abstract RowFile <: UF
@@ -20,21 +23,54 @@ abstract PlainRows<:RF
 export UserFile, RowFile, GzipRows, PlainRows
 
 "Return explained string for error if function on type not implemented"
-function _help_redefine_on_type( funcname::AbstractString, T::Type, funcdesc::AbstractString)::AbstractString
-    """Function $funcname(T::Type{$T}) not implemented by you. Define it as sample below:
-    \"$funcdesc\"
-    $funcname(T::Type{$T}) = ...
-    or
-    function $funcname(T::Type{$T}) 
-        #...    
-    end    
-    """
+function _not_defined_on_type_text( funcname::AbstractString, T::Type, funcdesc::AbstractString, short=false)::AbstractString
+    """Function $funcname(T::Type{$T}) not implemented by you. Define it as sample below:\n"""*
+    _define_on_type_text( funcname, T, funcdesc, short)
 end
+
+function _define_on_type_text( funcname::AbstractString, T::Type, funcdesc::AbstractString, short=false )::AbstractString
+"""\"$funcdesc\n\""""*
+(short?
+"""$funcname(T::Type{$T}) = \"Fix me! (type=$T)\" # <--- fix me"""
+:"""
+function $funcname(T::Type{$T}) 
+        #...fix me! 
+end
+"""
+)
+end
+
+function _define_on_value_text( funcname::AbstractString, T::Type, funcdesc::AbstractString,  short=false )::AbstractString
+"""\"$funcdesc\n\""""*
+(short?
+"""$funcname(x::T) = \"Fix me! (type=$T)\" # <--- fix me"""
+:"""
+function $funcname(x::T) 
+        #...fix me! 
+end
+"""
+)
+end
+
+
+
+"""Create new T<:UserFile if filename is match to regexp from re(), defined on T
+    Otherwise return nothing
+"""
+function new_if_match{ U<:UserFile }( T::Type{U}, filename::AbstractString)
+ m = match( T|>re, filename)
+ if m!=nothing
+    T(m)
+ end
+end
+export new_if_match
+
+
 
 """Returns regexp for concrete user file type instance or file type.
     Must be redefined on concrete user file type.
 """
-re{U<:UserFile}(T::Type{U}) = _help_redefine_on_type( "re", T, "returns Regex for any matched filenames")|>error
+re{U<:UserFile}(T::Type{U}) = _not_defined_on_type_text( "re", T, "returns Regex for any matched filenames", true)|>error
 re(file::UserFile) = re(typeof(file))
 export re
 
@@ -52,7 +88,9 @@ export needfiles
     Must be redefined for concrete user file type.
     Takes concrete filename as parameter.
 """
-create(userfile::UserFile)::Bool = error("create() not implemented yet for $userfile")
+create{T<:UserFile}(userfile::T)::Bool = 
+    "create() not implemented yet for $userfile. You must define it. Sample:"*
+    _define_on_value_text( "create", T, "Side-effect procedure to create file." )
 export create
 
 
@@ -60,7 +98,7 @@ export create
 """Returns field separator.
     Must be redefined on concrete user file type.
 """
-fs{T<:UserFile}(::Type{T}) = error("fs() not implemented yet for $T") 
+fs{T<:UserFile}(::Type{T}) = _not_defined_on_type_text( "fs", T, "Returns field separator.", true)|>error
 fs(f::UserFile) = fs(typeof(f)) 
 export fs
 
@@ -69,7 +107,7 @@ export fs
 """Returns field list as symbols tuple.
     Must be redefined on concrete user file type.
 """
-fields{T<:UserFile}(::Type{T}) = error("fields() not implemented yet for $T")
+fields{T<:UserFile}(::Type{T}) = _not_defined_on_type_text( fields, T, "Returns fields list", true)|>error
 fields(f::UserFile)::Tuple{Vararg{Symbol}} = fields(typeof(f))::Tuple{Vararg{Symbol}}
 export fields
 
@@ -102,35 +140,38 @@ export getready
 
 
 "Primitive size-based file-ready-test."
-goodsize(f::GzipRows)::Bool = filesize(f.name)>20
-goodsize(f::PlainRows)::Bool = filesize(f.name)>0
+goodsize(f::GzipRows)::Bool = filesize(f|>name)>20
+goodsize(f::PlainRows)::Bool = filesize(f|>name)>0
 export goodsize
-
-
-
-"Returns RegexMatch (or nothing) as result of match( re(concrete_user_file_type), filename )"
-parts{T<:UserFile}( file::T) = match(re(T), file.name) 
-export parts
-
 
 
 """Takes list of file names with user file type definitions, 
     include them and return describing array or place result to destination.
 """
-function routes( files_for_include::Array, destination::Array)::Void
+function types{S<:AbstractString}( files_for_include::Array{S}, destination::Array)::Void
  for f in files_for_include
-  t::Type = include(f) # f должен возвращать последним выражением тип <:UserFile
+  t = include(f) # f должен возвращать последним выражением тип <:UserFile
+  if Type(t)!=DataType
+    warn("""File $f skipped! It must return defined type as last expression.
+    But now returned value = $t. """)
+    if PROGRAM_FILE==""
+        info("""Use
+            edit(\"$t\") # if you now in REPL
+            and then save it and recall include(list of files)""")
+    end
+    continue
+  end
   push!(destination, t)
  end
- nothing 
 end
 
-function routes(files_for_include)::Array
+
+function types{S<:AbstractString}(files_for_include::Array{S})::Array
     rv = []
-    routes(files_for_include, rv)
+    types(files_for_include, rv)
     rv
-end    
-export routes
+end
+export types
 
 
 include("add_functions.jl")
